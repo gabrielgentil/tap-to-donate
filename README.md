@@ -1,13 +1,15 @@
 # Tap-to-Donate
 
-POC for digital donations a serverless API for managing donation campaigns and processing donations.
+POC for digital donations - a serverless API for managing donation campaigns and processing donations using SQS for asynchronous processing with structured logging and clean architecture.
 
 ## 🚀 Technologies
 
 - **Backend**: AWS Lambda + Serverless Framework
 - **Database**: MongoDB
+- **Message Queue**: AWS SQS
 - **Runtime**: Node.js
 - **Deploy**: Serverless Framework
+- **Architecture**: Clean Architecture with Services
 
 ## 📋 Prerequisites
 
@@ -120,6 +122,13 @@ curl -X POST http://localhost:3000/donate \
 - `credit_card`
 - `bank_transfer`
 
+**What happens:**
+1. Donation is saved to MongoDB
+2. Message is sent to SQS queue
+3. Lambda function processes the message asynchronously
+4. Receipt is generated (simulated)
+5. Email notification is sent (simulated)
+
 ## 🧪 Testing
 
 ### Manual Testing
@@ -175,6 +184,32 @@ npm test -- --run test/handlers/donate.test.ts -t "should process donation succe
 - Tests run in parallel with proper isolation
 - Connection management handled automatically
 
+## 🔄 SQS Processing Flow
+
+The system uses AWS SQS for asynchronous processing of donations:
+
+1. **Donation Request** → Lambda saves to MongoDB
+2. **Message Sent** → SQS queue receives donation notification
+3. **Async Processing** → Lambda processes message from SQS
+4. **Receipt Generation** → Simulated receipt URL created
+
+**SQS Configuration:**
+- Queue: `poc-donation`
+- Dead Letter Queue: `poc-donation-dlq`
+- Visibility Timeout: 30 seconds
+- Max Retries: 3 attempts
+
+## 🏗️ Architecture
+
+### Clean Architecture Pattern
+The project follows Clean Architecture principles with clear separation of concerns:
+
+- **Handlers**: HTTP/SQS event controllers (thin layer)
+- **Services**: Business logic and external integrations
+- **Models**: Data layer (MongoDB schemas)
+- **Utils**: Shared utilities (database, responses)
+
+
 ## 📦 Deployment
 
 **Build:**
@@ -196,9 +231,14 @@ npm run remove
 
 ```
 src/
-├── handlers/          # Lambda functions
+├── handlers/          # Lambda functions (controllers)
 │   ├── createCampaign.ts
-│   └── donate.ts
+│   ├── donate.ts
+│   └── processDonationNotification.ts
+├── services/         # Business logic services
+│   ├── campaignService.ts
+│   ├── donationService.ts
+│   └── sqsService.ts
 ├── models/           # Mongoose models
 │   ├── Campaign.ts
 │   └── Donation.ts
@@ -206,6 +246,7 @@ src/
 │   └── index.ts
 └── utils/            # Utilities
     ├── database.ts
+    ├── logger.ts
     └── response.ts
 ```
 
