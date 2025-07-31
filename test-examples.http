@@ -1,0 +1,80 @@
+### Testes da API Tap-to-Donate
+
+# Configuração base
+@baseUrl = http://localhost:3000
+@contentType = application/json
+
+### 1. Criar uma nova campanha
+POST {{baseUrl}}/campaign
+Content-Type: {{contentType}}
+
+{
+  "name": "Campanha Teste Docker",
+  "collectorName": "João Silva"
+}
+
+### 2. Fazer uma doação usando campanha existente (camp-001)
+POST {{baseUrl}}/donate
+Content-Type: {{contentType}}
+
+{
+  "campaignId": "camp-001",
+  "amount": 25.50,
+  "donorName": "Maria Santos",
+  "paymentMethod": "pix"
+}
+
+### 3. Fazer uma doação usando campanha existente (camp-002)
+POST {{baseUrl}}/donate
+Content-Type: {{contentType}}
+
+{
+  "campaignId": "camp-002",
+  "amount": 100.00,
+  "donorName": "Carlos Oliveira",
+  "paymentMethod": "credit_card"
+}
+
+### 4. Fazer uma doação para uma campanha que não existe (será criada automaticamente)
+POST {{baseUrl}}/donate
+Content-Type: {{contentType}}
+
+{
+  "campaignId": "camp-003",
+  "amount": 75.25,
+  "donorName": "Ana Costa",
+  "paymentMethod": "bank_transfer"
+}
+
+### 5. Teste de validação - campo obrigatório faltando
+POST {{baseUrl}}/donate
+Content-Type: {{contentType}}
+
+{
+  "campaignId": "camp-001",
+  "amount": 50,
+  "donorName": "Teste"
+  // paymentMethod faltando
+}
+
+### 6. Teste de validação - valor inválido
+POST {{baseUrl}}/donate
+Content-Type: {{contentType}}
+
+{
+  "campaignId": "camp-001",
+  "amount": -10,
+  "donorName": "Teste",
+  "paymentMethod": "credit_card"
+}
+
+### 7. Teste de validação - método de pagamento inválido
+POST {{baseUrl}}/donate
+Content-Type: {{contentType}}
+
+{
+  "campaignId": "camp-001",
+  "amount": 50,
+  "donorName": "Teste",
+  "paymentMethod": "dinheiro"
+} 

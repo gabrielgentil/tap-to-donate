@@ -1,0 +1,98 @@
+service: tap-to-donate
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  environment:
+    MONGO_URI: mongodb://admin:password123@localhost:27017/donations?authSource=admin
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+          Resource: "arn:aws:logs:*:*:*"
+
+plugins:
+  - serverless-esbuild
+  - serverless-dotenv-plugin
+  - serverless-offline
+
+custom:
+  esbuild:
+    bundle: true
+    minify: false
+    sourcemap: true
+    exclude: ['aws-sdk']
+    target: 'node18'
+    platform: 'node'
+    concurrency: 10
+  dotenv:
+    path: ./.env
+    logging: false
+  serverless-offline:
+    httpPort: 3000
+    lambdaPort: 3002
+    noPrependStageInUrl: true
+
+functions:
+  donate:
+    handler: src/handlers/donate.handler
+    events:
+      - http:
+          path: /donate
+          method: post
+          cors: true
+          request:
+            schemas:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    campaignId:
+                      type: string
+                      description: "ID da campanha"
+                    amount:
+                      type: number
+                      minimum: 0.01
+                      description: "Valor da doação"
+                    donorName:
+                      type: string
+                      description: "Nome do doador"
+                    paymentMethod:
+                      type: string
+                      enum: ["credit_card", "pix", "bank_transfer"]
+                      description: "Método de pagamento"
+                  required:
+                    - campaignId
+                    - amount
+                    - donorName
+                    - paymentMethod
+
+  createCampaign:
+    handler: src/handlers/createCampaign.handler
+    events:
+      - http:
+          path: /campaign
+          method: post
+          cors: true
+          request:
+            schemas:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      description: "Nome da campanha"
+                    collectorName:
+                      type: string
+                      description: "Nome do coletor"
+                  required:
+                    - name
+                    - collectorName 
