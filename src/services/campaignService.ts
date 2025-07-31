@@ -1,8 +1,5 @@
 import { Campaign, ICampaign } from '../models/Campaign';
-import { createFunctionLogger } from '../utils/logger';
 import { randomUUID } from 'crypto';
-
-const logger = createFunctionLogger('Campaign-Service');
 
 export interface CreateCampaignRequest {
   name: string;
@@ -21,7 +18,7 @@ export interface CampaignResponse {
 export class CampaignService {
   async createCampaign(request: CreateCampaignRequest): Promise<CampaignResponse> {
     try {
-      logger.info('Creating new campaign', {
+      console.log('[INFO] Creating new campaign', {
         name: request.name,
         collectorName: request.collectorName
       });
@@ -39,7 +36,7 @@ export class CampaignService {
 
       const savedCampaign = await campaign.save();
 
-      logger.info('Campaign created successfully', {
+      console.log('[INFO] Campaign created successfully', {
         campaignId: savedCampaign.campaignId,
         name: savedCampaign.name
       });
@@ -47,7 +44,7 @@ export class CampaignService {
       return this.mapToResponse(savedCampaign);
 
     } catch (error) {
-      logger.error('Failed to create campaign', error as Error, {
+      console.error('[ERROR] Failed to create campaign', error as Error, {
         name: request.name,
         collectorName: request.collectorName
       });
@@ -57,7 +54,7 @@ export class CampaignService {
 
   async updateCampaignTotal(campaignId: string, amount: number): Promise<void> {
     try {
-      logger.info('Updating campaign total donations', {
+      console.log('[INFO] Updating campaign total donations', {
         campaignId,
         amount,
         currentTotal: 0 // Será atualizado pelo MongoDB
@@ -85,13 +82,13 @@ export class CampaignService {
         await campaignUpdateResult.save();
       }
 
-      logger.info('Campaign total updated successfully', {
+      console.log('[INFO] Campaign total updated successfully', {
         campaignId,
         newTotal: campaignUpdateResult?.totalDonations
       });
 
     } catch (error) {
-      logger.error('Failed to update campaign total', error as Error, {
+      console.error('[ERROR] Failed to update campaign total', error as Error, {
         campaignId,
         amount
       });
@@ -101,16 +98,16 @@ export class CampaignService {
 
   async getCampaign(campaignId: string): Promise<CampaignResponse | null> {
     try {
-      logger.info('Fetching campaign', { campaignId });
+      console.log('[INFO] Fetching campaign', { campaignId });
 
       const campaign = await Campaign.findOne({ campaignId });
       
       if (!campaign) {
-        logger.warn('Campaign not found', { campaignId });
+        console.warn('[WARN] Campaign not found', { campaignId });
         return null;
       }
 
-      logger.info('Campaign fetched successfully', {
+      console.log('[INFO] Campaign fetched successfully', {
         campaignId,
         name: campaign.name,
         totalDonations: campaign.totalDonations
@@ -119,7 +116,7 @@ export class CampaignService {
       return this.mapToResponse(campaign);
 
     } catch (error) {
-      logger.error('Failed to fetch campaign', error as Error, { campaignId });
+      console.error('[ERROR] Failed to fetch campaign', error as Error, { campaignId });
       throw error;
     }
   }

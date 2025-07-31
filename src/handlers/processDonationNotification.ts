@@ -1,7 +1,4 @@
 import { SQSEvent, SQSHandler } from 'aws-lambda';
-import { createFunctionLogger } from '../utils/logger';
-
-const logger = createFunctionLogger('ProcessDonationNotification-Handler');
 
 interface DonationNotification {
   donationId: string;
@@ -13,14 +10,14 @@ interface DonationNotification {
 }
 
 export const handler: SQSHandler = async (event: SQSEvent) => {
-  logger.info('Received SQS message', {
+  console.log('[INFO] Received SQS message', {
     messageCount: event.Records.length,
     source: event.Records[0]?.eventSource
   });
 
   for (const record of event.Records) {
     try {
-      logger.info('Processing SQS record', {
+      console.log('[INFO] Processing SQS record', {
         messageId: record.messageId,
         receiptHandle: record.receiptHandle
       });
@@ -28,7 +25,7 @@ export const handler: SQSHandler = async (event: SQSEvent) => {
       // 1. Parse da mensagem
       const message: DonationNotification = JSON.parse(record.body);
       
-      logger.info('Parsed donation notification', {
+      console.log('[INFO] Parsed donation notification', {
         donationId: message.donationId,
         campaignId: message.campaignId,
         amount: message.amount,
@@ -42,13 +39,13 @@ export const handler: SQSHandler = async (event: SQSEvent) => {
       // 3. Enviar notificação por email (simulado)
       await sendEmailNotification(message, receiptUrl);
 
-      logger.info('Successfully processed donation notification', {
+      console.log('[INFO] Successfully processed donation notification', {
         donationId: message.donationId,
         receiptUrl: receiptUrl
       });
 
     } catch (error) {
-      logger.error('Error processing SQS record', error as Error, {
+      console.error('[ERROR] Error processing SQS record', error as Error, {
         messageId: record.messageId,
         body: record.body
       });
@@ -80,12 +77,12 @@ async function generateFakeReceipt(donation: DonationNotification): Promise<stri
     // Simular URL do comprovante (sem S3)
     const receiptUrl = `https://api.donations.com/receipts/${donation.donationId}`;
     
-    logger.info('Receipt generated (simulated)', { receiptUrl });
-    logger.info('Receipt content', { content: receiptContent });
+    console.log('[INFO] Receipt generated (simulated)', { receiptUrl });
+    console.log('[INFO] Receipt content', { content: receiptContent });
     
     return receiptUrl;
   } catch (error) {
-    logger.error('Error generating receipt', error as Error);
+    console.error('[ERROR] Error generating receipt', error as Error);
     return 'https://api.donations.com/receipt-not-available';
   }
 }
@@ -106,13 +103,13 @@ async function sendEmailNotification(donation: DonationNotification, receiptUrl:
       Comprovante: ${receiptUrl}
     `;
 
-    logger.info('Email notification sent (simulated)', {
+    console.log('[INFO] Email notification sent (simulated)', {
       to: 'gabriel.sgentil97@gmail.com',
       subject: 'Nova Doação Recebida',
       content: emailContent
     });
 
   } catch (error) {
-    logger.error('Error sending email notification', error as Error);
+    console.error('[ERROR] Error sending email notification', error as Error);
   }
 } 

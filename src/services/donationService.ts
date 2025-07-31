@@ -1,10 +1,7 @@
 import { Donation, IDonation } from '../models/Donation';
 import { DonationRequest } from '../types';
-import { createFunctionLogger } from '../utils/logger';
 import { campaignService } from './campaignService';
 import { sqsService, DonationNotification } from './sqsService';
-
-const logger = createFunctionLogger('Donation-Service');
 
 export interface DonationResponse {
   donationId: string;
@@ -16,10 +13,39 @@ export interface DonationResponse {
   totalCampaignDonations: number;
 }
 
+export interface ValidationError {
+  message: string;
+  field?: string;
+}
+
 export class DonationService {
+  validateDonationRequest(donationRequest: DonationRequest): ValidationError | null {
+    if (!donationRequest.campaignId) {
+      console.warn('[WARN] campaignId is missing', { request: donationRequest });
+      return { message: 'campaignId is required', field: 'campaignId' };
+    }
+
+    if (!donationRequest.amount || donationRequest.amount <= 0) {
+      console.warn('[WARN] Invalid amount', { amount: donationRequest.amount });
+      return { message: 'amount must be greater than 0', field: 'amount' };
+    }
+
+    if (!donationRequest.donorName) {
+      console.warn('[WARN] donorName is missing', { request: donationRequest });
+      return { message: 'donorName is required', field: 'donorName' };
+    }
+
+    if (!donationRequest.paymentMethod) {
+      console.warn('[WARN] paymentMethod is missing', { request: donationRequest });
+      return { message: 'paymentMethod is required', field: 'paymentMethod' };
+    }
+
+    return null;
+  }
+
   async processDonation(request: DonationRequest): Promise<DonationResponse> {
     try {
-      logger.info('Processing donation request', {
+      console.log('[INFO] Processing donation request', {
         campaignId: request.campaignId,
         amount: request.amount,
         donorName: request.donorName,
@@ -38,7 +64,7 @@ export class DonationService {
       // 4. Enviar notificação SQS
       await this.sendDonationNotification(donation, request);
 
-      logger.info('Donation processed successfully', {
+      console.log('[INFO] Donation processed successfully', {
         donationId: donation._id,
         campaignId: request.campaignId,
         amount: request.amount,
@@ -56,7 +82,7 @@ export class DonationService {
       };
 
     } catch (error) {
-      logger.error('Failed to process donation', error as Error, {
+      console.error('[ERROR] Failed to process donation', error as Error, {
         campaignId: request.campaignId,
         amount: request.amount,
         donorName: request.donorName
@@ -67,7 +93,7 @@ export class DonationService {
 
   private async createDonation(request: DonationRequest): Promise<IDonation> {
     try {
-      logger.info('Creating donation record', {
+      console.log('[INFO] Creating donation record', {
         campaignId: request.campaignId,
         amount: request.amount
       });
@@ -82,7 +108,7 @@ export class DonationService {
 
       const savedDonation = await donation.save();
 
-      logger.info('Donation record created successfully', {
+      console.log('[INFO] Donation record created successfully', {
         donationId: savedDonation._id,
         campaignId: savedDonation.campaignId
       });
@@ -90,7 +116,7 @@ export class DonationService {
       return savedDonation;
 
     } catch (error) {
-      logger.error('Failed to create donation record', error as Error, {
+      console.error('[ERROR] Failed to create donation record', error as Error, {
         campaignId: request.campaignId,
         amount: request.amount
       });
@@ -112,7 +138,7 @@ export class DonationService {
       await sqsService.sendDonationNotification(notification);
 
     } catch (error) {
-      logger.error('Failed to send donation notification', error as Error, {
+      console.error('[ERROR] Failed to send donation notification', error as Error, {
         donationId: donation._id,
         campaignId: request.campaignId
       });

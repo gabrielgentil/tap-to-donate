@@ -7,7 +7,6 @@ POC for digital donations - a serverless API for managing donation campaigns and
 - **Backend**: AWS Lambda + Serverless Framework
 - **Database**: MongoDB
 - **Message Queue**: AWS SQS
-- **Logging**: Pino (structured logging)
 - **Runtime**: Node.js
 - **Deploy**: Serverless Framework
 - **Architecture**: Clean Architecture with Services
@@ -193,7 +192,6 @@ The system uses AWS SQS for asynchronous processing of donations:
 2. **Message Sent** → SQS queue receives donation notification
 3. **Async Processing** → Lambda processes message from SQS
 4. **Receipt Generation** → Simulated receipt URL created
-5. **Email Notification** → Simulated email sent to admin
 
 **SQS Configuration:**
 - Queue: `poc-donation`
@@ -209,14 +207,7 @@ The project follows Clean Architecture principles with clear separation of conce
 - **Handlers**: HTTP/SQS event controllers (thin layer)
 - **Services**: Business logic and external integrations
 - **Models**: Data layer (MongoDB schemas)
-- **Utils**: Shared utilities (logging, database, responses)
-
-### Logging Strategy
-- **Pino**: High-performance structured logging
-- **Context**: Each log includes function name and relevant data
-- **Levels**: info, warn, error, debug
-- **Pretty**: Development-friendly formatted output
-
+- **Utils**: Shared utilities (database, responses)
 
 
 ## 📦 Deployment
