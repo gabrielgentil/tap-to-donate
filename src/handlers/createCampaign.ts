@@ -60,6 +60,8 @@ export const handler = async (
     console.error('Error creating campaign:', error);
     return internalServerErrorResponse('Error creating campaign');
   } finally {
-    await closeDatabase();
+    if (process.env.NODE_ENV !== 'test') {
+      await closeDatabase();
+    }
   }
 }; 

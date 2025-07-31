@@ -95,6 +95,8 @@ export const handler = async (
     console.error('Error processing donation:', error);
     return internalServerErrorResponse('Error processing donation');
   } finally {
-    await closeDatabase();
+    if (process.env.NODE_ENV !== 'test') {
+      await closeDatabase();
+    }
   }
 }; 
