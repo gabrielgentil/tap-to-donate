@@ -6,8 +6,10 @@ provider:
   name: aws
   runtime: nodejs18.x
   region: us-east-1
+  timeout: 30
   environment:
     MONGO_URI: mongodb://admin:password123@localhost:27017/donations?authSource=admin
+    SQS_QUEUE_URL: !Ref DonationNotificationsQueue
   iam:
     role:
       statements:
@@ -17,6 +19,20 @@ provider:
             - logs:CreateLogStream
             - logs:PutLogEvents
           Resource: "arn:aws:logs:*:*:*"
+
+        - Effect: Allow
+          Action:
+            - sqs:SendMessage
+            - sqs:GetMessage
+            - sqs:DeleteMessage
+            - sqs:ReceiveMessage
+          Resource: !Ref DonationNotificationsQueue
+
+        - Effect: Allow
+          Action:
+            - ses:SendEmail
+            - ses:SendRawEmail
+          Resource: "*"
 
 plugins:
   - serverless-esbuild
@@ -39,6 +55,28 @@ custom:
     httpPort: 3000
     lambdaPort: 3002
     noPrependStageInUrl: true
+
+resources:
+  Resources:
+    # Fila SQS para notificações de doação
+    DonationNotificationsQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: poc-donation
+        VisibilityTimeoutSeconds: 30
+        MessageRetentionPeriod: 1209600
+        RedrivePolicy:
+          deadLetterTargetArn: !GetAtt DonationNotificationsDLQ.Arn
+          maxReceiveCount: 3
+
+    # Fila DLQ para mensagens que falharam
+    DonationNotificationsDLQ:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: poc-donation-dlq
+        MessageRetentionPeriod: 1209600
+
+
 
 functions:
   donate:
@@ -95,4 +133,11 @@ functions:
                       description: "Nome do coletor"
                   required:
                     - name
-                    - collectorName 
+                    - collectorName
+
+  processDonationNotification:
+    handler: src/handlers/processDonationNotification.handler
+    events:
+      - sqs:
+          arn: !GetAtt DonationNotificationsQueue.Arn
+          batchSize: 1

@@ -1,98 +1,75 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { connectToDatabase, closeDatabase } from '../utils/database';
 import { successResponse, badRequestResponse, internalServerErrorResponse } from '../utils/response';
+import { createFunctionLogger } from '../utils/logger';
+import { donationService } from '../services/donationService';
 import { DonationRequest } from '../types';
-import { Donation, IDonation } from '../models/Donation';
-import { Campaign, ICampaign } from '../models/Campaign';
+
+const logger = createFunctionLogger('Donate-Handler');
 
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  console.log('Received donation request:', event.body);
+  logger.info('Received donation request', {
+    body: event.body,
+    path: event.path,
+    method: event.httpMethod
+  });
 
   try {
+    // 1. Validar request body
     if (!event.body) {
+      logger.warn('Request body is missing');
       return badRequestResponse('Request body is required');
     }
 
     const donationRequest: DonationRequest = JSON.parse(event.body);
 
+    // 2. Validar campos obrigatórios
     if (!donationRequest.campaignId) {
+      logger.warn('campaignId is missing', { request: donationRequest });
       return badRequestResponse('campaignId is required');
     }
 
     if (!donationRequest.amount || donationRequest.amount <= 0) {
+      logger.warn('Invalid amount', { amount: donationRequest.amount });
       return badRequestResponse('amount must be greater than 0');
     }
 
     if (!donationRequest.donorName) {
+      logger.warn('donorName is missing', { request: donationRequest });
       return badRequestResponse('donorName is required');
     }
 
     if (!donationRequest.paymentMethod) {
+      logger.warn('paymentMethod is missing', { request: donationRequest });
       return badRequestResponse('paymentMethod is required');
     }
 
+    // 3. Conectar ao banco
     await connectToDatabase();
 
-    const donation = new Donation({
-      campaignId: donationRequest.campaignId,
-      amount: donationRequest.amount,
-      donorName: donationRequest.donorName,
-      paymentMethod: donationRequest.paymentMethod,
-      donatedAt: new Date()
-    });
+    // 4. Processar doação
+    const result = await donationService.processDonation(donationRequest);
 
-    console.log('Creating donation:', {
-      campaignId: donation.campaignId,
-      amount: donation.amount,
-      donorName: donation.donorName,
-      paymentMethod: donation.paymentMethod
-    });
-
-    const savedDonation = await donation.save();
-
-    const campaignFilter = { campaignId: donationRequest.campaignId };
-    const campaignUpdate = {
-      $inc: { totalDonations: donationRequest.amount },
-      $set: { updatedAt: new Date() }
-    };
-
-    const campaignUpdateResult = await Campaign.findOneAndUpdate(
-      campaignFilter,
-      campaignUpdate,
-      { 
-        upsert: true, 
-        new: true,
-        setDefaultsOnInsert: true 
-      }
-    );
-
-    if (campaignUpdateResult && !campaignUpdateResult.name) {
-      campaignUpdateResult.name = `Campaign ${donationRequest.campaignId}`;
-      campaignUpdateResult.collectorName = 'Default Collector';
-      await campaignUpdateResult.save();
-    }
-
-    const updatedCampaign = await Campaign.findOne(campaignFilter);
-
-    console.log('Donation processed successfully');
-    console.log('Campaign updated:', {
-      campaignId: updatedCampaign?.campaignId,
-      name: updatedCampaign?.name,
-      totalDonations: updatedCampaign?.totalDonations,
-      updatedAt: updatedCampaign?.updatedAt
+    logger.info('Donation processed successfully', {
+      donationId: result.donationId,
+      campaignId: result.campaignId,
+      amount: result.amount,
+      totalCampaignDonations: result.totalCampaignDonations
     });
 
     return successResponse({
-      donationId: savedDonation._id,
-      campaignId: donationRequest.campaignId,
-      amount: donationRequest.amount,
-      totalCampaignDonations: updatedCampaign?.totalDonations || donationRequest.amount
+      donationId: result.donationId,
+      campaignId: result.campaignId,
+      amount: result.amount,
+      totalCampaignDonations: result.totalCampaignDonations
     }, 'Donation processed successfully!');
 
   } catch (error) {
-    console.error('Error processing donation:', error);
+    logger.error('Error processing donation', error as Error, {
+      body: event.body
+    });
     return internalServerErrorResponse('Error processing donation');
   } finally {
     if (process.env.NODE_ENV !== 'test') {

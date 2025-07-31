@@ -1,80 +1,54 @@
-### Testes da API Tap-to-Donate
+### Test Examples - SQS (Valores Reais)
 
-# Configuração base
-@baseUrl = http://localhost:3000
-@contentType = application/json
-
-### 1. Criar uma nova campanha
-POST {{baseUrl}}/campaign
-Content-Type: {{contentType}}
+### 1. Criar Campanha
+POST http://localhost:3000/campaign
+Content-Type: application/json
 
 {
-  "name": "Campanha Teste Docker",
+  "name": "Ajuda para Vítimas de Enchente",
   "collectorName": "João Silva"
 }
 
-### 2. Fazer uma doação usando campanha existente (camp-001)
-POST {{baseUrl}}/donate
-Content-Type: {{contentType}}
+### 2. Fazer Doação (dispara SQS + gera comprovante)
+POST http://localhost:3000/donate
+Content-Type: application/json
 
 {
-  "campaignId": "camp-001",
-  "amount": 25.50,
+  "campaignId": "campaign-uuid-here",
+  "amount": 50.00,
   "donorName": "Maria Santos",
   "paymentMethod": "pix"
 }
 
-### 3. Fazer uma doação usando campanha existente (camp-002)
-POST {{baseUrl}}/donate
-Content-Type: {{contentType}}
+### 3. Fazer Outra Doação
+POST http://localhost:3000/donate
+Content-Type: application/json
 
 {
-  "campaignId": "camp-002",
+  "campaignId": "campaign-uuid-here",
   "amount": 100.00,
-  "donorName": "Carlos Oliveira",
+  "donorName": "Pedro Oliveira",
   "paymentMethod": "credit_card"
 }
 
-### 4. Fazer uma doação para uma campanha que não existe (será criada automaticamente)
-POST {{baseUrl}}/donate
-Content-Type: {{contentType}}
+### 4. Testar Processamento de Notificação (HTTP Trigger)
+POST http://localhost:3000/test-notification
+Content-Type: application/json
 
 {
-  "campaignId": "camp-003",
-  "amount": 75.25,
-  "donorName": "Ana Costa",
-  "paymentMethod": "bank_transfer"
+  "donationId": "test-donation-123",
+  "campaignId": "test-campaign",
+  "amount": 75.50,
+  "donorName": "Ana Teste",
+  "paymentMethod": "pix",
+  "donatedAt": "2024-01-15T10:30:00Z"
 }
 
-### 5. Teste de validação - campo obrigatório faltando
-POST {{baseUrl}}/donate
-Content-Type: {{contentType}}
-
-{
-  "campaignId": "camp-001",
-  "amount": 50,
-  "donorName": "Teste"
-  // paymentMethod faltando
-}
-
-### 6. Teste de validação - valor inválido
-POST {{baseUrl}}/donate
-Content-Type: {{contentType}}
-
-{
-  "campaignId": "camp-001",
-  "amount": -10,
-  "donorName": "Teste",
-  "paymentMethod": "credit_card"
-}
-
-### 7. Teste de validação - método de pagamento inválido
-POST {{baseUrl}}/donate
-Content-Type: {{contentType}}
-
-{
-  "campaignId": "camp-001",
-  "amount": 50,
-  "donorName": "Teste",
-  "paymentMethod": "dinheiro"
-} 
+### Notas:
+# - Substitua "campaign-uuid-here" pelo ID da campanha criada no passo 1
+# - Cada doação envia uma mensagem para a fila SQS: poc-donation
+# - A função processDonationNotification gera um comprovante simulado
+# - Um email é "enviado" para gabriel.sgentil97@gmail.com (simulado no console)
+# - Verifique os logs para ver o processo completo
+# - URLs dos comprovantes: https://api.donations.com/receipts/{donationId}
+# - O endpoint /test-notification permite testar a função diretamente via HTTP 
