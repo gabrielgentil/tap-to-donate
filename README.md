@@ -122,7 +122,58 @@ curl -X POST http://localhost:3000/donate \
 
 ## 🧪 Testing
 
+### Manual Testing
 Use the `test-examples.http` file to test the API with pre-configured examples.
+
+### Automated Testing
+The project uses Vitest for integration testing with MongoDB.
+
+**Prerequisites for testing:**
+```bash
+# Start MongoDB (required for tests)
+npm run docker:up
+```
+
+**Run all tests:**
+```bash
+npm test
+```
+
+**Run tests in watch mode:**
+```bash
+npm run test:watch
+```
+
+**Run tests with coverage:**
+```bash
+npm run test:coverage
+```
+
+**Run specific test:**
+```bash
+npm test -- --run test/handlers/donate.test.ts -t "should process donation successfully for existing campaign"
+```
+
+**Test Structure:**
+- `test/setup.ts` - Test environment setup with database connection
+- `test/handlers/createCampaign.test.ts` - Campaign creation tests
+- `test/handlers/donate.test.ts` - Donation processing tests
+
+**Test Coverage:**
+- ✅ Campaign creation (success and validation scenarios)
+- ✅ Campaign validation (missing fields, invalid data)
+- ✅ Donation processing (success and validation scenarios)
+- ✅ Donation validation (missing fields, invalid amounts)
+- ✅ Campaign auto-creation when donating to non-existent campaign
+- ✅ Multiple donations accumulation
+- ✅ Database operations verification
+- ✅ Error handling and response validation
+
+**Test Environment:**
+- Uses isolated MongoDB database (`test-donate`)
+- Database is cleaned before and after each test
+- Tests run in parallel with proper isolation
+- Connection management handled automatically
 
 ## 📦 Deployment
 
@@ -160,13 +211,26 @@ src/
 
 ## 🔧 Available Scripts
 
+### Development
 - `npm run dev` - Run in development mode
 - `npm run build` - Build the project
-- `npm run deploy` - Deploy to AWS
-- `npm run remove` - Remove from AWS
+- `npm run start:local` - Start everything locally (Docker + Serverless)
+
+### Docker Management
 - `npm run docker:up` - Start MongoDB
 - `npm run docker:down` - Stop MongoDB
-- `npm run start:local` - Start everything locally
+- `npm run docker:logs` - View MongoDB logs
+- `npm run docker:restart` - Restart MongoDB
+- `npm run docker:clean` - Stop and remove volumes
+
+### Testing
+- `npm test` - Run all tests
+- `npm run test:watch` - Run tests in watch mode
+- `npm run test:coverage` - Run tests with coverage
+
+### Deployment
+- `npm run deploy` - Deploy to AWS
+- `npm run remove` - Remove from AWS
 
 ## 📝 License
 
